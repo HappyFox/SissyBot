@@ -38,7 +38,7 @@ setup(
     install_requires=["kivy"],
     entry_points="""
         [console_scripts]
-        sb=sissyBot.cli:cli
+        sb=sissyBot.client:client
     """,
     project_urls={"Source": "https://github.com/HappyFox/SissyBot"},  # Optional
 )
