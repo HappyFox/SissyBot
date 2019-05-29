@@ -7,7 +7,7 @@
 
 
 <RootWidget>:
-    padding: 5
+    padding: 10
     canvas.before:
         Color:
             rgb: my_color 
@@ -16,12 +16,13 @@
             size: self.size
     BoxLayout:
         orientation: 'vertical'
+        padding: 10
 
         Label:
             text: app.config.get("robot", "address")
-            id: "address_label"
-        Label:
-            text: 'booya2'
+            id: address_label
+        ToggleButton:
+            text: 'Xmit'
         Label:
             text: 'booya2'
     JoyPad:

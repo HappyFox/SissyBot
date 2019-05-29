@@ -10,13 +10,10 @@ from . import float_joy
 
 
 class RootWidget(kivy.uix.boxlayout.BoxLayout):
+    def on_addr_update(self, config):
+        addr_str = config.get("robot", "address") + ":" + config.get("robot", "port")
 
-    address_label = kivy.properties.ObjectProperty(None)
-
-    def on_config_update(self, section, key, value):
-        print(section)
-        print(key)
-        print(value)
+        self.ids.address_label.text = addr_str
 
 
 class ClientApp(kv.app.App):
@@ -24,6 +21,13 @@ class ClientApp(kv.app.App):
 
     def build(self):
         self.root = RootWidget()
+
+        self.settings_fn = {
+            "robot": {
+                "address": self.root.on_addr_update,
+                "port": self.root.on_addr_update,
+            }
+        }
         return self.root
 
     def build_settings(self, settings):
@@ -53,7 +57,12 @@ class ClientApp(kv.app.App):
         config.setdefaults("robot", {"address": "sissybot.local", "port": "4443"})
 
     def on_config_change(self, config, section, key, value):
-        print(key + " " + value)
+        print(section + " " + key + " " + value)
+
+        if section in self.settings_fn:
+            if key in self.settings_fn[section]:
+                fn = self.settings_fn[section][key]
+                fn(config)
 
 
 def client():
