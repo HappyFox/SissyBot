@@ -1,13 +1,34 @@
 #:import joy_pad sissyBot.float_joy.JoyPad
 
+#:set my_color (0.5, 0.5, 0.5)
+#:set my_color_hl (.5, .4, .5)
+#:set outline_color (.2, .2, .2)
+
 
 
 <RootWidget>:
-    #BoxLayout:
-    Label:
-        text: 'booya'
+    padding: 5
+    canvas.before:
+        Color:
+            rgb: my_color 
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    BoxLayout:
+        orientation: 'vertical'
+
+        Label:
+            text: app.config.get("robot", "address")
+            id: "address_label"
+        Label:
+            text: 'booya2'
+        Label:
+            text: 'booya2'
     JoyPad:
-
-
+        canvas.before:
+            Color:
+                rgb: outline_color
+            Line:
+                rectangle: (self.x, self.y, self.width, self.height)
 
 
