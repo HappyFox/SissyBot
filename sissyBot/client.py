@@ -31,7 +31,6 @@ class ClientApp(kv.app.App):
         return self.root
 
     def build_settings(self, settings):
-        # {"type": "title", "title": "Networking"},
         json_data = """
         [
 
