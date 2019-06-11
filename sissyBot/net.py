@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import multiprocessing
 import sys
 import traceback
@@ -24,6 +25,12 @@ class ExceptionEvent:
     frame_summary: traceback.StackSummary
 
 
+@dataclass
+class LogEntry:
+    level: int
+    text: str
+
+
 class NetProc:
     def __init__(self):
         self.tasks = []
@@ -42,6 +49,15 @@ class NetProc:
     def stop(self):
         self.stop_event.set()
         self.proc.join()
+
+    def log_debug(self, txt):
+        self.resp_que.put(LogEntry(logging.DEBUG, txt))
+
+    def log_info(self, txt):
+        self.resp_que.put(LogEntry(logging.INFO, txt))
+
+    def log_error(self, txt):
+        self.resp_que.put(LogEntry(logging.ERROR, txt))
 
     def main(self):
         asyncio.run(self.main_task())
@@ -76,12 +92,15 @@ class NetProc:
                 self.cmd_handlers[type(cmd)](cmd)
             except:
                 exc_type, exc_value, exc_traceback = sys.exc_info()
-                stack = traceback.extract_tb(exc_traceback, capture_locals=False)
-                excpt = ExceptionEvent(exc_type, exc_value, stack)
-                self.resp_que.put(excpt)
+                excpt_txt = traceback.format_exception(
+                    exc_type, exc_value, exc_traceback
+                )
+                excpt_txt = "".join(excpt_txt)
+                self.log_error(excpt_txt)
 
     def set_end_point(self, cmd):
-        print(f"{cmd.addr}:{cmd.port}")
+        print(f"{cmd.ip}:{cmd.port}")
+        self.log_debug(f"{cmd.ip}:{cmd.port}")
 
 
 class NetConProc:

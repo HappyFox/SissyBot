@@ -1,10 +1,13 @@
 import kivy as kv
 
 import kivy.app
+import kivy.clock
 import kivy.uix
 import kivy.uix.widget
 import kivy.uix.boxlayout
 import kivy.properties
+
+import sissyBot.net
 
 from . import float_joy
 
@@ -18,6 +21,34 @@ class RootWidget(kivy.uix.boxlayout.BoxLayout):
 
 class ClientApp(kv.app.App):
     use_kivy_settings = False
+
+    def on_start(self):
+        self.net_con = sissyBot.net.NetConProc()
+        self.net_con.start()
+
+        self.clock = kivy.clock.Clock
+        self.clock.schedule_interval(self.tick, 0)
+
+    def on_stop(self):
+        self.net_con.stop()
+
+    def tick(self, dt):
+        while not self.net_con.resp_que.empty():
+            resp = self.net_con.resp_que.get_nowait()
+
+            if type(resp) is sissyBot.net.LogEntry:
+                self.log_entry(resp.level, resp.text)
+
+    def toggle_xmit(self, *largs):
+        print(largs)
+        print("toggle!")
+        addr = self.config.get("robot", "address")
+        port = self.config.get("robot", "port")
+        cmd = sissyBot.net.SetEndpoint(addr, port)
+        self.net_con.cmd_que.put(cmd)
+
+    def log_entry(self, level, text):
+        self.root.ids.log.text += f"\n{text}\n"
 
     def build(self):
         self.root = RootWidget()

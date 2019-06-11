@@ -13,17 +13,30 @@
         Rectangle:
             pos: self.pos
             size: self.size
-    BoxLayout:
+    Accordion:
         orientation: 'vertical'
-        padding: 10
+        AccordionItem:
+            title: 'Net Control'
+            BoxLayout:
+                orientation: 'vertical'
+                padding: 10
 
-        Label:
-            text: app.config.get("robot", "address")
-            id: address_label
-        ToggleButton:
-            text: 'Xmit'
-        Label:
-            text: 'booya2'
+                Label:
+                    text: app.config.get("robot", "address")
+                    id: address_label
+                ToggleButton:
+                    text: 'Xmit'
+                    on_press: app.toggle_xmit()
+        AccordionItem:
+            title: 'Log'
+
+            RstDocument:
+                id:log
+                show_errors: True
+                text: "Da Log!"
+
+
+
     JoyPad:
         canvas.before:
             Color:
