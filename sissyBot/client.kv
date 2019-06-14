@@ -18,22 +18,33 @@
         AccordionItem:
             title: 'Net Control'
             BoxLayout:
+            #StackLayout:
                 orientation: 'vertical'
+                pos_hint: {'center_x':.5, 'center_y': .5}
                 padding: 10
 
-                Label:
+                TextInput:
+                    multiline:False
+                    height: self.minimum_height
                     text: app.config.get("robot", "address")
                     id: address_label
+                    size_hint: [ 1, self.size_hint_min_y ]
                 ToggleButton:
                     text: 'Xmit'
                     on_press: app.toggle_xmit()
+                    size_hint: [ 1, self.size_hint_min_y ]
         AccordionItem:
             title: 'Log'
 
-            RstDocument:
-                id:log
-                show_errors: True
-                text: "Da Log!"
+            ScrollView:
+                Label:
+                    id:log
+                    height: self.texture_size[1]
+                    text_size: self.width, None
+                    size_hint_y: None
+                    text: "Da Log!\n" * 100
+                    halign: 'left'
+                    valign: 'top'
 
 
 

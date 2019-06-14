@@ -101,6 +101,7 @@ class NetProc:
     def set_end_point(self, cmd):
         print(f"{cmd.ip}:{cmd.port}")
         self.log_debug(f"{cmd.ip}:{cmd.port}")
+        raise Exception("Booya")
 
 
 class NetConProc:
