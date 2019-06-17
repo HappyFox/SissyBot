@@ -39,12 +39,21 @@
             ScrollView:
                 Label:
                     id:log
+                    markup: True
                     height: self.texture_size[1]
                     text_size: self.width, None
                     size_hint_y: None
-                    text: "Da Log!\n" * 100
+                    text: "Da Log!\n"
                     halign: 'left'
                     valign: 'top'
+                    padding: [10,5]
+                    canvas.before:
+                        Color:
+                            rgb: (0,0,0)
+                        Rectangle:
+                            pos: self.pos
+                            size: self.size
+
 
 
 

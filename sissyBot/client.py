@@ -1,11 +1,14 @@
+import logging
+
 import kivy as kv
 
 import kivy.app
 import kivy.clock
+import kivy.properties
 import kivy.uix
 import kivy.uix.widget
 import kivy.uix.boxlayout
-import kivy.properties
+import kivy.utils
 
 import sissyBot.net
 
@@ -48,6 +51,11 @@ class ClientApp(kv.app.App):
         self.net_con.cmd_que.put(cmd)
 
     def log_entry(self, level, text):
+        text = kivy.utils.escape_markup(text)
+
+        if level == logging.ERROR:
+            text = f"[color=ff3333]{text}[/color]"
+
         self.root.ids.log.text += f"\n{text}\n"
 
     def build(self):
