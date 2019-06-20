@@ -13,7 +13,7 @@ class CmdTypes(Enum):
 
 
 @dataclass
-class SetEndpoint:
+class Connect:
     ip: str
     port: int
 
@@ -40,7 +40,7 @@ class NetProc:
         self.cmd_que = multiprocessing.Queue()
         self.stop_event = multiprocessing.Event()
 
-        self.cmd_handlers = {SetEndpoint: self.set_end_point}
+        self.cmd_handlers = {Connect: self.connect}
 
     def start(self):
         self.proc = multiprocessing.Process(target=self.main)
@@ -98,7 +98,7 @@ class NetProc:
                 excpt_txt = "".join(excpt_txt)
                 self.log_error(excpt_txt)
 
-    def set_end_point(self, cmd):
+    def connect(self, cmd):
         print(f"{cmd.ip}:{cmd.port}")
         self.log_debug(f"{cmd.ip}:{cmd.port}")
         raise Exception("Booya")

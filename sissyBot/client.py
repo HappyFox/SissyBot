@@ -47,7 +47,7 @@ class ClientApp(kv.app.App):
         print("toggle!")
         addr = self.config.get("robot", "address")
         port = self.config.get("robot", "port")
-        cmd = sissyBot.net.SetEndpoint(addr, port)
+        cmd = sissyBot.net.Connect(addr, port)
         self.net_con.cmd_que.put(cmd)
 
     def log_entry(self, level, text):
