@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import multiprocessing
 import sys
 import traceback
 
@@ -8,110 +7,56 @@ from dataclasses import dataclass
 from enum import Enum
 
 
-class CmdTypes(Enum):
-    STOP = 1
+class NetCon:
+    def __init__(self, log):
+        self.loop = asyncio.get_event_loop()
+        self.log = log
 
-
-@dataclass
-class Connect:
-    ip: str
-    port: int
-
-
-@dataclass
-class ExceptionEvent:
-    type_: type
-    value: Exception
-    frame_summary: traceback.StackSummary
-
-
-@dataclass
-class LogEntry:
-    level: int
-    text: str
-
-
-class NetProc:
-    def __init__(self):
         self.tasks = []
-        self.proc = None
 
-        self.resp_que = multiprocessing.Queue()
-        self.cmd_que = multiprocessing.Queue()
-        self.stop_event = multiprocessing.Event()
+        self.reader = None
+        self.writer = None
 
-        self.cmd_handlers = {Connect: self.connect}
+    def tick(self):
+        # After you call stop, every call to run_forever will run just the
+        # pending callbacks/tasks. This is how we will interleave the asyncio
+        # and kivy.
+        self.loop.stop()
+        # As this is stopped, only pending tasks will run once.
+        # print("enter loop")
+        self.loop.run_forever()
+        # print("exit loop")
 
-    def start(self):
-        self.proc = multiprocessing.Process(target=self.main)
-        self.proc.start()
+        done_tasks = [task for task in self.tasks if task.done()]
+        self.tasks = [task for task in self.tasks if not task.done()]
 
-    def stop(self):
-        self.stop_event.set()
-        self.proc.join()
+        if done_tasks:
+            print(done_tasks)
+            for task in done_tasks:
+                if task.exception():
+                    self.log.error(str(task.get_stack()))
+                    self.log.error(str(task.exception()))
 
-    def log_debug(self, txt):
-        self.resp_que.put(LogEntry(logging.DEBUG, txt))
+    def connect(self, addr, port, success_cb, error_cb):
+        print(port)
 
-    def log_info(self, txt):
-        self.resp_que.put(LogEntry(logging.INFO, txt))
+        async def connect_task():
+            self.reader, self.writer = await asyncio.open_connection(
+                host=addr, port=port
+            )
+            print("connected!")
 
-    def log_error(self, txt):
-        self.resp_que.put(LogEntry(logging.ERROR, txt))
+        con_task = self.loop.create_task(connect_task())
 
-    def main(self):
-        asyncio.run(self.main_task())
+        def callback(task):
+            if task.exception():
+                error_cb()
+                return
+            success_cb()
 
-    async def main_task(self):
-        self.tasks = []
-        loop = asyncio.get_running_loop()
+        con_task.add_done_callback(callback)
 
-        cmd_task = asyncio.create_task(self.cmd_que_task())
+        self.tasks.append(con_task)
 
-        await loop.run_in_executor(None, self.stop_event.wait)
-
-        self.cmd_que.put(CmdTypes.STOP)
-        await cmd_task
-
-        # stop is set, cancel tasks
-        for task in self.tasks:
-            task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass  # expected
-
-    async def cmd_que_task(self):
-        loop = asyncio.get_running_loop()
-
-        while True:
-            cmd = await loop.run_in_executor(None, self.cmd_que.get)
-            if cmd is CmdTypes.STOP:
-                break
-            try:
-                self.cmd_handlers[type(cmd)](cmd)
-            except:
-                exc_type, exc_value, exc_traceback = sys.exc_info()
-                excpt_txt = traceback.format_exception(
-                    exc_type, exc_value, exc_traceback
-                )
-                excpt_txt = "".join(excpt_txt)
-                self.log_error(excpt_txt)
-
-    def connect(self, cmd):
-        print(f"{cmd.ip}:{cmd.port}")
-        self.log_debug(f"{cmd.ip}:{cmd.port}")
-        raise Exception("Booya")
-
-
-class NetConProc:
-    def __init__(self):
-        self.net_proc = NetProc()
-        self.cmd_que = self.net_proc.cmd_que
-        self.resp_que = self.net_proc.resp_que
-
-    def start(self):
-        self.net_proc.start()
-
-    def stop(self):
-        self.net_proc.stop()
+    async def _recv_task(self):
+        pass
