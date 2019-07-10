@@ -2,15 +2,18 @@ syntax = "proto3";
 
 
 message PingFrame {
-    uint32 time = 1;
+    uint64 time = 1;
+    
+}
+
+message PongFrame {
+    uint64 time =1;
 }
 
 message Packet {
-    message Frames {
-        oneof frame {
-            PingFrame ping = 1;
-        }
+    oneof frame {
+        PingFrame ping = 1;
+        PongFrame pong = 2;
     }
-
-    repeated Frames frames =2; 
 }
+

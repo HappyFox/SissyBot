@@ -28,7 +28,7 @@ class ClientApp(kv.app.App):
     def on_start(self):
         # ugh a bit of a circular design, have to come up with something
         # better.
-        self.net_con = sissyBot.net.NetCon(self)
+        self.net_con = sissyBot.net.ClientNetCon(self)
         # self.net_con.start()
 
         self.clock = kivy.clock.Clock
