@@ -30,8 +30,9 @@
                     id: address_label
                     size_hint: [ 1, self.size_hint_min_y ]
                 ToggleButton:
-                    text: 'Xmit'
-                    on_press: app.toggle_xmit()
+                    id: connect_btn
+                    text: 'Connect'
+                    on_press: app.connect()
                     size_hint: [ 1, self.size_hint_min_y ]
         AccordionItem:
             title: 'Log'
