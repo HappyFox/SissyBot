@@ -13,6 +13,10 @@ async def main(client_cb, port=4443):
     addr = server.sockets[0].getsockname()
     print(f"Serving on {addr}")
 
+    return server
+
+
+async def run_server(server):
     async with server:
         await server.serve_forever()
 
@@ -27,17 +31,20 @@ def serve():
         client_handler, stop_event=stop_event, tasks_list=tasks
     )
 
-    svr_task = loop.create_task(main(client_cb))
+    svr_start_task = loop.create_task(main(client_cb))
+
+    loop.run_until_complete(svr_start_task)
+
+    server = svr_start_task.result()
+
+    svr_task = loop.create_task(server.serve_forever())
 
     try:
         loop.run_forever()
     except KeyboardInterrupt:
         stop_event.set()
-
-        svr_task.cancel()
-        loop.run_until_complete(svr_task)
+        server.close()
+        loop.run_until_complete(server.wait_close())
 
         for task in tasks:
             loop.run_until_complete(task)
-
-    # asyncio.run(main())
