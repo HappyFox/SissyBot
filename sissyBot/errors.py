@@ -1,0 +1,2 @@
+class BadStreamError(Exception):
+    pass

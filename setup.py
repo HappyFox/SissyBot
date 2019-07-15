@@ -35,7 +35,7 @@ setup(
     ],
     packages=["sissyBot"],
     python_requires=">=3.7",
-    install_requires=[],
+    install_requires=[protobuf>=3.9.0,],
     extras_require={"GUI": ["kivy"]},
     entry_points={
         "console_scripts": [

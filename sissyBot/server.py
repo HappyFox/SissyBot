@@ -2,9 +2,47 @@ import asyncio
 import functools
 import signal
 
+import sissyBot.net as net
+
 
 async def client_handler(reader, writer, stop_event=None, tasks_list=None):
     print("got client")
+
+    accum_buff = b""
+
+    stop_task = asyncio.create_task(stop_event.wait())
+
+    while True:
+        recv_task = asyncio.create_task(reader.read(4096))
+        done, pending = await asyncio.wait(
+            {stop_task, recv_task}, return_when=asyncio.FIRST_COMPLETED
+        )
+
+        if stop_task in done:
+            return
+
+        assert recv_task in done
+        assert len(done) == 1
+
+        buff = recv_task.result()
+        print(buff)
+
+        if not len(buff):
+            print("connection close, shutting down PacketProcessor.")
+            return
+
+        accum_buff += buff
+        print(f"accum buff {accum_buff}")
+
+        while net.contains_pkt(accum_buff):
+            # accum_buff, pkt = _process_pkt(accum_buff)
+            pkt_buff, accum_buff = net.get_1st_pkt(accum_buff)
+
+            print(pkt_buff)
+
+
+def process_pkt(pkt, writer, stop_event):
+    pass
 
 
 async def main(client_cb, port=4443):
@@ -44,7 +82,7 @@ def serve():
     except KeyboardInterrupt:
         stop_event.set()
         server.close()
-        loop.run_until_complete(server.wait_close())
+        loop.run_until_complete(server.wait_closed())
 
         for task in tasks:
             loop.run_until_complete(task)

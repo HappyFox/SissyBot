@@ -6,10 +6,11 @@ import traceback
 from dataclasses import dataclass
 from enum import Enum
 
+import sissyBot.errors as errors
 import sissyBot.proto.packet_pb2 as packet_pb2
 
 
-LEN_HEADER = 2
+LEN_HEADER = 1
 LEN_ORDER = "big"
 
 
@@ -32,8 +33,16 @@ def insert_pkt_len(buff):
 
 
 def contains_pkt(buff):
+    if not len(buff):
+        return False
+
     len_ = int.from_bytes(buff[:LEN_HEADER], byteorder="big", signed=False)
+
+    if not len_:
+        raise errors.BadStreamError()
+
     buff = buff[LEN_HEADER:]
+    print(f"{len_}:{len(buff)}")
 
     if len(buff) >= len_:
         return True
