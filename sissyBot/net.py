@@ -32,6 +32,13 @@ def insert_pkt_len(buff):
     return len_bytes + buff
 
 
+async def write_pkt(pkt, writer):
+    buff = pkt.SerializeToString()
+    buff = insert_pkt_len(buff)
+    writer.writer(buff)
+    await writer.drain()
+
+
 def contains_pkt(buff):
     if not len(buff):
         return False
@@ -96,7 +103,13 @@ class ClientNetCon:
                 self.reader, self.writer, self.stop_event, self.log
             )
 
-            self.tasks.append(self.packet_processor.start())
+            recv_task = asyncio.create_task(self.packet_processor.recv_fn())
+            self.tasks.append(recv_task)
+
+            pkt = packet_pb2.Packet()
+            pkt.ping.time = 1
+
+            write_pkt(pkt, self.writer)
 
         con_task = self.loop.create_task(connect_task())
 
@@ -123,13 +136,6 @@ class PacketProcessor:
 
         self.handlers = {}
 
-    def start(self):
-        self.recv_task = asyncio.create_task(self.recv_fn())
-        return self.recv_task
-
-    def stop(self):
-        self.stop_event.set()
-
     async def recv_fn(self):
         self.accum_buff = b""
 
@@ -151,24 +157,24 @@ class PacketProcessor:
             print(buff)
 
             if not len(buff):
-                log.info("connection close, shutting down PacketProcessor.")
+                self.log.info("connection close, shutting down PacketProcessor.")
                 return
 
             self.accum_buff += buff
 
-            while contains_pkts(self.accum_buff):
+            while contains_pkt(self.accum_buff):
                 self.accum_buff = self._process_pkt(self.accum_buff)
 
     def _process_pkt(self, buff):
         pkt_buff, remain_buff = get_1st_pkt(buff)
 
-        pkt = packet_pb2.FromString(pkt_buff)
+        pkt = packet_pb2.Packet.FromString(pkt_buff)
 
         frame_type = pkt.WhichOneof("frame")
 
         if frame_type in self.handlers:
             frame = getattr(pkt, frame_type)
-            self.handlers[frame_type](frame)
+            self.handlers[frame_type](frame, self.writer)
             return remain_buff
 
         log.error(f"Unhandled frame type: {frame_type}")

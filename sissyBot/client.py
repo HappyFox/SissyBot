@@ -1,4 +1,5 @@
 import logging
+import math
 
 import kivy as kv
 
@@ -22,14 +23,57 @@ class RootWidget(kivy.uix.boxlayout.BoxLayout):
         self.ids.address_label.text = addr_str
 
 
+class DriveBinding:
+    def __init__(self, net_con, drive_pad):
+        self._net_con = net_con
+
+        self.pad = drive_pad
+        self.pad.trim = -math.pi / 2
+        self.pad.bind(on_engage=self.on_engage)
+        self.pad.bind(on_move=self.on_move)
+        self.pad.bind(on_release=self.on_release)
+
+    def on_engage(self, pad):
+        print("engadge!")
+
+    def on_move(self, pad, theta, rho):
+        print("moving")
+
+    def on_release(self, pad):
+        print("release")
+
+
+class LogBinding:
+    def __init__(self, panel):
+        self.panel = panel
+
+    def info(self, text):
+        self._log_entry(logging.INFO, text)
+
+    def error(self, text):
+        self._log_entry(logging.ERROR, text)
+
+    def debug(self, text):
+        self._log_entry(logging.DEBUG, text)
+
+    def _log_entry(self, level, text):
+        text = kivy.utils.escape_markup(text)
+
+        if level == logging.ERROR:
+            text = f"[color=ff3333]{text}[/color]"
+
+        self.panel.text += f"\n{text}\n"
+
+
 class ClientApp(kv.app.App):
     use_kivy_settings = False
 
     def on_start(self):
-        # ugh a bit of a circular design, have to come up with something
-        # better.
-        self.net_con = sissyBot.net.ClientNetCon(self)
+        self.log = LogBinding(self.root.ids.log)
+        self.net_con = sissyBot.net.ClientNetCon(self.log)
         # self.net_con.start()
+
+        self.drive_binding = DriveBinding(self.net_con, self.root.ids.drive_pad)
 
         self.clock = kivy.clock.Clock
         self.clock.schedule_interval(self.tick, 0)
@@ -57,23 +101,6 @@ class ClientApp(kv.app.App):
             self.root.ids.connect_btn.text = "Connect"
 
         self.net_con.connect(addr, port, on_connect, on_error)
-
-    def info(self, text):
-        self._log_entry(logging.INFO, text)
-
-    def error(self, text):
-        self._log_entry(logging.ERROR, text)
-
-    def debug(self, text):
-        self._log_entry(logging.DEBUG, text)
-
-    def _log_entry(self, level, text):
-        text = kivy.utils.escape_markup(text)
-
-        if level == logging.ERROR:
-            text = f"[color=ff3333]{text}[/color]"
-
-        self.root.ids.log.text += f"\n{text}\n"
 
     def build(self):
         self.root = RootWidget()

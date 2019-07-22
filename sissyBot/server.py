@@ -1,48 +1,25 @@
 import asyncio
 import functools
+import logging
 import signal
 
 import sissyBot.net as net
 
 
 async def client_handler(reader, writer, stop_event=None, tasks_list=None):
-    print("got client")
+    log = logging.getLogger("client_handler")
+    client = net.PacketProcessor(reader, writer, stop_event, log)
 
-    accum_buff = b""
+    def print_log(frame, writer):
+        import pdb
 
-    stop_task = asyncio.create_task(stop_event.wait())
+        pdb.set_trace()
+        print(f"ping:{frame.time}")
+        log.info(f"ping{frame.time}")
 
-    while True:
-        recv_task = asyncio.create_task(reader.read(4096))
-        done, pending = await asyncio.wait(
-            {stop_task, recv_task}, return_when=asyncio.FIRST_COMPLETED
-        )
+    client.handlers["ping"] = print_log
 
-        if stop_task in done:
-            return
-
-        assert recv_task in done
-        assert len(done) == 1
-
-        buff = recv_task.result()
-        print(buff)
-
-        if not len(buff):
-            print("connection close, shutting down PacketProcessor.")
-            return
-
-        accum_buff += buff
-        print(f"accum buff {accum_buff}")
-
-        while net.contains_pkt(accum_buff):
-            # accum_buff, pkt = _process_pkt(accum_buff)
-            pkt_buff, accum_buff = net.get_1st_pkt(accum_buff)
-
-            print(pkt_buff)
-
-
-def process_pkt(pkt, writer, stop_event):
-    pass
+    await client.recv_fn()
 
 
 async def main(client_cb, port=4443):
@@ -54,12 +31,10 @@ async def main(client_cb, port=4443):
     return server
 
 
-async def run_server(server):
-    async with server:
-        await server.serve_forever()
-
-
 def serve():
+    FORMAT = "%(asctime)-15s %(message)s"
+    logging.basicConfig(format=FORMAT)
+
     loop = asyncio.get_event_loop()
 
     stop_event = asyncio.Event()
