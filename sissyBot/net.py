@@ -35,7 +35,7 @@ def insert_pkt_len(buff):
 async def write_pkt(pkt, writer):
     buff = pkt.SerializeToString()
     buff = insert_pkt_len(buff)
-    writer.writer(buff)
+    writer.write(buff)
     await writer.drain()
 
 
@@ -70,6 +70,8 @@ class ClientNetCon:
 
         self.packet_processor = None
 
+        self.drive_cmds = asyncio.Queue()
+
     def tick(self):
         # After you call stop, every call to run_forever will run just the
         # pending callbacks/tasks. This is how we will interleave the asyncio
@@ -94,6 +96,9 @@ class ClientNetCon:
         print(port)
 
         async def connect_task():
+            import pdb
+
+            pdb.set_trace()
             self.reader, self.writer = await asyncio.open_connection(
                 host=addr, port=port
             )
@@ -109,7 +114,7 @@ class ClientNetCon:
             pkt = packet_pb2.Packet()
             pkt.ping.time = 1
 
-            write_pkt(pkt, self.writer)
+            await write_pkt(pkt, self.writer)
 
         con_task = self.loop.create_task(connect_task())
 

@@ -1,4 +1,6 @@
 #:import joy_pad sissyBot.float_joy.JoyPad
+#:import math math
+#:import logPanel sissyBot.client.LogPanel
 
 #:set my_color (0.5, 0.5, 0.5)
 #:set my_color_hl (.5, .4, .5)
@@ -32,13 +34,19 @@
                 ToggleButton:
                     id: connect_btn
                     text: 'Connect'
-                    on_press: app.connect()
+                    on_press: app.net_con.connect(address_label.text, app.config.get("robot", "port"))
                     size_hint: [ 1, self.size_hint_min_y ]
         AccordionItem:
             title: 'Log'
 
+            canvas.before:
+                Color:
+                    rgb: (0,0,0)
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
             ScrollView:
-                Label:
+                LogPanel:
                     id:log
                     markup: True
                     height: self.texture_size[1]
@@ -48,18 +56,14 @@
                     halign: 'left'
                     valign: 'top'
                     padding: [10,5]
-                    canvas.before:
-                        Color:
-                            rgb: (0,0,0)
-                        Rectangle:
-                            pos: self.pos
-                            size: self.size
-
-
 
 
     JoyPad:
         id: drive_pad
+        trim: -math.pi / 2
+        on_engage: app.drive_binding.on_engage(*args)
+        on_move: app.drive_binding.on_move(*args)
+        on_release: app.drive_binding.on_release(*args)
         canvas.before:
             Color:
                 rgb: outline_color

@@ -1,5 +1,7 @@
 import logging
 import math
+import select
+import socket
 
 import kivy as kv
 
@@ -9,6 +11,7 @@ import kivy.properties
 import kivy.uix
 import kivy.uix.widget
 import kivy.uix.boxlayout
+import kivy.uix.label
 import kivy.utils
 
 import sissyBot.net
@@ -24,29 +27,20 @@ class RootWidget(kivy.uix.boxlayout.BoxLayout):
 
 
 class DriveBinding:
-    def __init__(self, net_con, drive_pad):
+    def __init__(self, net_con):
         self._net_con = net_con
 
-        self.pad = drive_pad
-        self.pad.trim = -math.pi / 2
-        self.pad.bind(on_engage=self.on_engage)
-        self.pad.bind(on_move=self.on_move)
-        self.pad.bind(on_release=self.on_release)
-
     def on_engage(self, pad):
-        print("engadge!")
+        print(f"engadge! {pad}")
 
     def on_move(self, pad, theta, rho):
-        print("moving")
+        print(f"moving {theta}, {rho}")
 
     def on_release(self, pad):
         print("release")
 
 
-class LogBinding:
-    def __init__(self, panel):
-        self.panel = panel
-
+class LogPanel(kivy.uix.label.Label):
     def info(self, text):
         self._log_entry(logging.INFO, text)
 
@@ -62,18 +56,20 @@ class LogBinding:
         if level == logging.ERROR:
             text = f"[color=ff3333]{text}[/color]"
 
-        self.panel.text += f"\n{text}\n"
+        self.text += f"\n{text}\n"
 
 
 class ClientApp(kv.app.App):
     use_kivy_settings = False
 
     def on_start(self):
-        self.log = LogBinding(self.root.ids.log)
-        self.net_con = sissyBot.net.ClientNetCon(self.log)
+        self.log = self.root.ids.log
+        # self.log = LogBinding(self.root.ids.log)
+        # self.net_con = sissyBot.net.ClientNetCon(self.log)
+        self.net_con = NetConnection(self.log)  # , self.config)
         # self.net_con.start()
 
-        self.drive_binding = DriveBinding(self.net_con, self.root.ids.drive_pad)
+        self.drive_binding = DriveBinding(self.net_con)
 
         self.clock = kivy.clock.Clock
         self.clock.schedule_interval(self.tick, 0)
@@ -97,10 +93,11 @@ class ClientApp(kv.app.App):
             self.root.ids.connect_btn.text = "Connected"
 
         def on_error():
+            print("error cb")
             self.root.ids.connect_btn.state = "normal"
             self.root.ids.connect_btn.text = "Connect"
 
-        self.net_con.connect(addr, port, on_connect, on_error)
+        self.net_con.connect(addr, port)
 
     def build(self):
         self.root = RootWidget()
@@ -116,6 +113,8 @@ class ClientApp(kv.app.App):
     def build_settings(self, settings):
         json_data = """
         [
+
+
 
             {
                 "type": "string",
@@ -145,6 +144,61 @@ class ClientApp(kv.app.App):
             if key in self.settings_fn[section]:
                 fn = self.settings_fn[section][key]
                 fn(config)
+
+
+class NetConnection(kivy.event.EventDispatcher):
+
+    up = kivy.properties.BooleanProperty(False)
+
+    def __init__(self, log, **kwargs):
+        self.log = log
+
+        self._socket = None
+
+        super(NetConnection, self).__init__(**kwargs)
+
+    def tick(self):
+        if self._socket:
+            print(type(self._socket))
+            read, write, err = select.select(
+                [self._socket], [self._socket], [self._socket], 0
+            )
+
+            if err:
+                self.log.error("socket error!")
+                self._close_sock()
+                return
+
+            if write:
+                if not self.up:
+                    self.log.info("setting net con to up")
+                self.up = True
+
+            if read:
+                try:
+                    buff = self._socket.recv(4096)
+                except ConnectionError:
+                    self._close_sock()
+
+                else:
+                    if not buff:
+                        self._close_sock()
+                        return
+
+    def _close_sock(self):
+        self._socket.close()
+        self._socket = None
+        self.up = False
+
+    def connect(self, addr, port):
+        self.log.info(f"Connecting ! {addr}:{port}")
+        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._socket.setblocking(False)
+
+        try:
+            self._socket.connect((addr, int(port)))
+        except BlockingIOError:
+            pass
 
 
 def client():
