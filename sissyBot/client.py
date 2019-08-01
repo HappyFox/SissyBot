@@ -17,6 +17,8 @@ import kivy.utils
 
 import sissyBot.net
 
+from sissyBot.proto.packet_pb2 import Packet
+
 from . import float_joy
 
 
@@ -36,6 +38,7 @@ class DriveBinding:
 
     def on_move(self, pad, theta, rho):
         print(f"moving {theta}, {rho}")
+        self._net_con.drive_cmd(theta, rho)
 
     def on_release(self, pad):
         print("release")
@@ -51,9 +54,7 @@ class ConnectButton(kivy.uix.togglebutton.ToggleButton):
     def on_press(self):
         self.text = "Connecting"
 
-    def on_up(self, up2, up):
-        print(up)
-        print(up2)
+    def on_up(self, _, up):
         if up:
             self.text = "Connected"
             self.state = "down"
@@ -197,6 +198,17 @@ class NetConnection(kivy.event.EventDispatcher):
         self._socket = None
         self.up = False
 
+    def _send_pkt(self, pkt):
+        buff = pkt.SerializeToString()
+        buff = sissyBot.net.insert_pkt_len(buff)
+
+        # Yes I should check it's writable, but we aren't sending that much
+        # currently.
+        try:
+            self._socket.send(buff)
+        except BlockingIOError:
+            pass
+
     def connect(self, addr, port):
         self.log.info(f"Connecting ! {addr}:{port}")
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -206,6 +218,17 @@ class NetConnection(kivy.event.EventDispatcher):
             self._socket.connect((addr, int(port)))
         except BlockingIOError:
             pass
+
+    def close(self):
+        self._close_sock()
+
+    def drive_cmd(self, theta, rho):
+        pkt = Packet()
+
+        pkt.drive.heading = int(math.degrees(theta))
+        pkt.drive.throttle = rho
+
+        self._send_pkt(pkt)
 
 
 def client():

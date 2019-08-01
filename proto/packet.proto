@@ -19,6 +19,7 @@ message Packet {
     oneof frame {
         PingFrame ping = 1;
         PongFrame pong = 2;
+        DriveFrame drive =3;
     }
 }
 
