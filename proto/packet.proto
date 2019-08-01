@@ -10,6 +10,11 @@ message PongFrame {
     uint64 time =1;
 }
 
+message DriveFrame {
+    sint32 heading =1;
+    float throttle =2;
+}
+
 message Packet {
     oneof frame {
         PingFrame ping = 1;

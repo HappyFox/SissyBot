@@ -12,6 +12,7 @@ import kivy.uix
 import kivy.uix.widget
 import kivy.uix.boxlayout
 import kivy.uix.label
+import kivy.uix.togglebutton
 import kivy.utils
 
 import sissyBot.net
@@ -40,6 +41,27 @@ class DriveBinding:
         print("release")
 
 
+class ConnectButton(kivy.uix.togglebutton.ToggleButton):
+
+    net_con = kivy.properties.ObjectProperty()
+
+    def on_net_con(self, _, net_con):
+        net_con.bind(up=self.on_up)
+
+    def on_press(self):
+        self.text = "Connecting"
+
+    def on_up(self, up2, up):
+        print(up)
+        print(up2)
+        if up:
+            self.text = "Connected"
+            self.state = "down"
+            return
+        self.text = "Connect"
+        self.state = "normal"
+
+
 class LogPanel(kivy.uix.label.Label):
     def info(self, text):
         self._log_entry(logging.INFO, text)
@@ -62,6 +84,8 @@ class LogPanel(kivy.uix.label.Label):
 class ClientApp(kv.app.App):
     use_kivy_settings = False
 
+    net_con = kivy.properties.ObjectProperty()
+
     def on_start(self):
         self.log = self.root.ids.log
         # self.log = LogBinding(self.root.ids.log)
@@ -80,24 +104,6 @@ class ClientApp(kv.app.App):
 
     def tick(self, dt):
         self.net_con.tick()
-
-    def connect(self, *largs):
-        print(largs)
-        print("toggle!")
-        addr = self.config.get("robot", "address")
-        port = self.config.get("robot", "port")
-
-        self.root.ids.connect_btn.text = "Connecting"
-
-        def on_connect():
-            self.root.ids.connect_btn.text = "Connected"
-
-        def on_error():
-            print("error cb")
-            self.root.ids.connect_btn.state = "normal"
-            self.root.ids.connect_btn.text = "Connect"
-
-        self.net_con.connect(addr, port)
 
     def build(self):
         self.root = RootWidget()
@@ -148,7 +154,7 @@ class ClientApp(kv.app.App):
 
 class NetConnection(kivy.event.EventDispatcher):
 
-    up = kivy.properties.BooleanProperty(False)
+    up = kivy.properties.BooleanProperty(False, force_dispatch=True)
 
     def __init__(self, log, **kwargs):
         self.log = log
@@ -159,7 +165,7 @@ class NetConnection(kivy.event.EventDispatcher):
 
     def tick(self):
         if self._socket:
-            print(type(self._socket))
+            # print(type(self._socket))
             read, write, err = select.select(
                 [self._socket], [self._socket], [self._socket], 0
             )
@@ -186,6 +192,7 @@ class NetConnection(kivy.event.EventDispatcher):
                         return
 
     def _close_sock(self):
+        self.log.error("closing socket")
         self._socket.close()
         self._socket = None
         self.up = False

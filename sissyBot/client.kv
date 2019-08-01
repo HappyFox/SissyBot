@@ -1,6 +1,7 @@
 #:import joy_pad sissyBot.float_joy.JoyPad
 #:import math math
 #:import logPanel sissyBot.client.LogPanel
+#:import ConnectButton sissyBot.client.ConnectButton
 
 #:set my_color (0.5, 0.5, 0.5)
 #:set my_color_hl (.5, .4, .5)
@@ -20,7 +21,6 @@
         AccordionItem:
             title: 'Net Control'
             BoxLayout:
-            #StackLayout:
                 orientation: 'vertical'
                 pos_hint: {'center_x':.5, 'center_y': .5}
                 padding: 10
@@ -31,8 +31,9 @@
                     text: app.config.get("robot", "address")
                     id: address_label
                     size_hint: [ 1, self.size_hint_min_y ]
-                ToggleButton:
+                ConnectButton:
                     id: connect_btn
+                    net_con: app.net_con
                     text: 'Connect'
                     on_press: app.net_con.connect(address_label.text, app.config.get("robot", "port"))
                     size_hint: [ 1, self.size_hint_min_y ]
