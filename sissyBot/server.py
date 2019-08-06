@@ -2,8 +2,34 @@ import asyncio
 import functools
 import logging
 import signal
+import math
 
 import sissyBot.net as net
+
+
+def heading_trans(x):
+    y = math.sin(math.radians(x)) * 1.6
+    y = max(-1, min(1, y))
+    return round(y, 5)
+
+
+def motor_calc(drive):
+    l_motor = heading_trans(drive.heading + 135) * drive.throttle
+    r_motor = heading_trans(drive.heading + 45) * drive.throttle
+    return l_motor, r_motor
+
+
+def handle_drive(drive, writer):
+    log = logging.getLogger("drive handler")
+    # print(f"drive.heading: {drive.heading}, throttle: {drive.throttle}")
+    l_motor, r_motor = motor_calc(drive)
+    print(
+        f"drive.heading: {drive.heading}, throttle: {drive.throttle}Motors:{l_motor}, {r_motor}"
+    )
+
+
+def handle_drive_stop(drive, writer):
+    print("ALL STOP")
 
 
 async def client_handler(reader, writer, stop_event=None, tasks_list=None):
@@ -14,10 +40,12 @@ async def client_handler(reader, writer, stop_event=None, tasks_list=None):
         import pdb
 
         pdb.set_trace()
-        print(f"ping:{frame.time}")
-        log.info(f"ping{frame.time}")
+        # print(f"ping:{frame.time}")
+        # log.info(f"ping{frame.time}")
 
     client.handlers["ping"] = print_log
+    client.handlers["drive"] = handle_drive
+    client.handlers["drive_stop"] = handle_drive_stop
 
     await client.recv_fn()
 

@@ -49,84 +49,12 @@ def contains_pkt(buff):
         raise errors.BadStreamError()
 
     buff = buff[LEN_HEADER:]
-    print(f"{len_}:{len(buff)}")
+    # print(f"{len_}:{len(buff)}")
 
     if len(buff) >= len_:
         return True
 
     return False
-
-
-class ClientNetCon:
-    def __init__(self, log):
-        self.loop = asyncio.get_event_loop()
-        self.stop_event = asyncio.Event(loop=self.loop)
-        self.log = log
-
-        self.tasks = []
-
-        self.reader = None
-        self.writer = None
-
-        self.packet_processor = None
-
-        self.drive_cmds = asyncio.Queue()
-
-    def tick(self):
-        # After you call stop, every call to run_forever will run just the
-        # pending callbacks/tasks. This is how we will interleave the asyncio
-        # and kivy.
-        self.loop.stop()
-        # As this is stopped, only pending tasks will run once.
-        # print("enter loop")
-        self.loop.run_forever()
-        # print("exit loop")
-
-        done_tasks = [task for task in self.tasks if task.done()]
-        self.tasks = [task for task in self.tasks if not task.done()]
-
-        if done_tasks:
-            print(done_tasks)
-            for task in done_tasks:
-                if task.exception():
-                    self.log.error(str(task.get_stack()))
-                    self.log.error(str(task.exception()))
-
-    def connect(self, addr, port, success_cb, error_cb):
-        print(port)
-
-        async def connect_task():
-            import pdb
-
-            pdb.set_trace()
-            self.reader, self.writer = await asyncio.open_connection(
-                host=addr, port=port
-            )
-            self.log.info("connected!")
-
-            self.packet_processor = PacketProcessor(
-                self.reader, self.writer, self.stop_event, self.log
-            )
-
-            recv_task = asyncio.create_task(self.packet_processor.recv_fn())
-            self.tasks.append(recv_task)
-
-            pkt = packet_pb2.Packet()
-            pkt.ping.time = 1
-
-            await write_pkt(pkt, self.writer)
-
-        con_task = self.loop.create_task(connect_task())
-
-        def callback(task):
-            if task.exception():
-                error_cb()
-                return
-            success_cb()
-
-        con_task.add_done_callback(callback)
-
-        self.tasks.append(con_task)
 
 
 class PacketProcessor:
@@ -159,7 +87,6 @@ class PacketProcessor:
             assert len(done) == 1
 
             buff = recv_task.result()
-            print(buff)
 
             if not len(buff):
                 self.log.info("connection close, shutting down PacketProcessor.")
@@ -182,5 +109,5 @@ class PacketProcessor:
             self.handlers[frame_type](frame, self.writer)
             return remain_buff
 
-        log.error(f"Unhandled frame type: {frame_type}")
+        self.log.error(f"Unhandled frame type: {frame_type}")
         return remain_buff

@@ -42,6 +42,7 @@ class DriveBinding:
 
     def on_release(self, pad):
         print("release")
+        self._net_con.drive_stop()
 
 
 class ConnectButton(kivy.uix.togglebutton.ToggleButton):
@@ -199,6 +200,17 @@ class NetConnection(kivy.event.EventDispatcher):
         self.up = False
 
     def _send_pkt(self, pkt):
+
+        if not self._socket:
+            self.log.error("Trying to send with No socket !")
+            return
+
+        _, write, err = select.select([], [self._socket], [self._socket], 0)
+
+        if err or not write:
+            self.log.error("Trying to send with un-writable socket")
+            return
+
         buff = pkt.SerializeToString()
         buff = sissyBot.net.insert_pkt_len(buff)
 
@@ -227,6 +239,13 @@ class NetConnection(kivy.event.EventDispatcher):
 
         pkt.drive.heading = int(math.degrees(theta))
         pkt.drive.throttle = rho
+
+        self._send_pkt(pkt)
+
+    def drive_stop(self):
+        pkt = Packet()
+
+        pkt.drive_stop.SetInParent()
 
         self._send_pkt(pkt)
 

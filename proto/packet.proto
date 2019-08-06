@@ -15,11 +15,14 @@ message DriveFrame {
     float throttle =2;
 }
 
+message DriveStopFrame {}
+
 message Packet {
     oneof frame {
         PingFrame ping = 1;
         PongFrame pong = 2;
-        DriveFrame drive =3;
+        DriveFrame drive = 3;
+        DriveStopFrame drive_stop = 4;
     }
 }
 
