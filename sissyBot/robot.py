@@ -12,6 +12,9 @@ import snoop
 from dataclasses import dataclass
 
 
+from proto import drive_pb2
+
+
 @dataclass
 class PubCmd:
     subject: str
@@ -34,8 +37,8 @@ class NatsProc:
         self.proc.start()
         self.proc_end.close()
 
-    def stop(self):
-        # self.gui_end.send(StopCmd())
+    def close(self):
+        # self.gui_end.send(closeCmd())
         self.gui_end.close()
         self.proc.join()
 
@@ -80,40 +83,79 @@ class NatsProc:
                 self.proc_end.send(recv_end)
 
                 async def sub_callback(msg):
-                    subject = msg.subject
-                    reply = msg.reply
-                    data = msg.data.decode()
-                    print(
-                        "Received a message on '{subject} {reply}': {data}".format(
-                            subject=subject, reply=reply, data=data
-                        )
-                    )
-
                     send_end.send(msg)
 
-                sid = await self.nats.subscribe(cmd.subject, cb=sub_callback)
+                # when I add unsub I will need this sid
+                _ = await self.nats.subscribe(cmd.subject, cb=sub_callback)
+
+
+class Robot:
+    def __init__(self):
+        self.nat_proc = None
+
+    def connect(self, addr):
+        self.nat_proc = NatsProc()
+        self.nat_proc.connect(addr)
+
+    def close(self):
+        self.nat_proc.gui_end.close()
+
+    def publish(self, subject, payload):
+        if not isinstance(payload, bytes):
+            raise TypeError(f"Expected bytes got {type(payload)}")
+
+        cmd = PubCmd(subject, payload)
+        self.nat_proc.gui_end.send(cmd)
+
+    def subscribe(self, subject):
+
+        cmd = SubCmd(subject)
+        self.nat_proc.gui_end.send(cmd)
+
+        return self.nat_proc.gui_end.recv()
+
+    def cmd_drive(self, heading, throttle):
+
+        frame = drive_pb2.DriveFrame()
+        frame.drive.heading = heading
+        frame.drive.throttle = throttle
+
+        # self.publish("drive.cmd", b"1234")
+        # import pdb
+
+        # pdb.set_trace()
+        self.publish("drive.cmd", frame.SerializeToString())
 
 
 @snoop(depth=2)
 def main():
-    bp = NatsProc()
+    bp = Robot()
     bp.connect("127.0.0.1:4222")
-    bp2 = NatsProc()
+    bp2 = Robot()
     bp2.connect("127.0.0.1:4222")
 
-    cmd = SubCmd("boo")
-    bp2.gui_end.send(cmd)
-    sub_pipe = bp2.gui_end.recv()
+    # cmd = SubCmd("boo")
+    # bp2.gui_end.send(cmd)
+    # sub_pipe = bp2.gui_end.recv()
+    sub_pipe = bp2.subscribe("drive.cmd")
 
-    cmd = PubCmd("boo", b"1234")
-    bp.gui_end.send(cmd)
+    # cmd = PubCmd("boo", b"1234")
+    # bp.gui_end.send(cmd)
+    # bp.publish("boo", b"1234")
+    bp.cmd_drive(180, 1.0)
 
-    print(sub_pipe.recv())
+    if sub_pipe.poll(3):
+        # print(sub_pipe.recv())
+
+        msg = sub_pipe.recv()
+        msg = drive_pb2.DriveFrame.FromString(msg.data)
+        print(msg)
+
     import time
 
-    time.sleep(30.0)
-    bp.stop()
-    bp2.stop()
+    # time.sleep(30.0)
+    bp.close()
+    bp2.close()
 
 
 if __name__ == "__main__":
