@@ -15,9 +15,10 @@ import kivy.uix.label
 import kivy.uix.togglebutton
 import kivy.utils
 
-import sissyBot.net
+# import sissyBot.net
+import sissyBot.robot
 
-from sissyBot.proto.packet_pb2 import Packet
+# from sissyBot.proto.packet_pb2 import Packet
 
 from . import float_joy
 
@@ -30,32 +31,33 @@ class RootWidget(kivy.uix.boxlayout.BoxLayout):
 
 
 class DriveBinding:
-    def __init__(self, net_con):
-        self._net_con = net_con
+    def __init__(self, bot_con):
+        self._bot_con = bot_con
 
     def on_engage(self, pad):
         print(f"engadge! {pad}")
 
     def on_move(self, pad, theta, rho):
         print(f"moving {theta}, {rho}")
-        self._net_con.drive_cmd(theta, rho)
+        self._bot_con.drive.cmd(theta, rho)
 
     def on_release(self, pad):
         print("release")
-        self._net_con.drive_stop()
+        self._bot_con.drive.stop()
 
 
 class ConnectButton(kivy.uix.togglebutton.ToggleButton):
 
-    net_con = kivy.properties.ObjectProperty()
+    bot_con = kivy.properties.ObjectProperty()
 
-    def on_net_con(self, _, net_con):
-        net_con.bind(up=self.on_up)
+    def on_bot_con(self, _, bot_con):
+        bot_con.bind(up=self.on_up)
 
     def on_press(self):
         self.text = "Connecting"
 
     def on_up(self, _, up):
+        print("on_up")
         if up:
             self.text = "Connected"
             self.state = "down"
@@ -86,26 +88,19 @@ class LogPanel(kivy.uix.label.Label):
 class ClientApp(kv.app.App):
     use_kivy_settings = False
 
-    net_con = kivy.properties.ObjectProperty()
+    bot_con = kivy.properties.ObjectProperty()
 
     def on_start(self):
         self.log = self.root.ids.log
         # self.log = LogBinding(self.root.ids.log)
-        # self.net_con = sissyBot.net.ClientNetCon(self.log)
-        self.net_con = NetConnection(self.log)  # , self.config)
-        # self.net_con.start()
+        # self.bot_con = sissyBot.net.ClientNetCon(self.log)
+        self.bot_con = sissyBot.robot.Robot()
+        # self.bot_con.start()
 
-        self.drive_binding = DriveBinding(self.net_con)
-
-        self.clock = kivy.clock.Clock
-        self.clock.schedule_interval(self.tick, 0)
+        self.drive_binding = DriveBinding(self.bot_con)
 
     def on_stop(self):
-        # self.net_con.stop()
-        pass
-
-    def tick(self, dt):
-        self.net_con.tick()
+        self.bot_con.close()
 
     def build(self):
         self.root = RootWidget()
@@ -152,102 +147,6 @@ class ClientApp(kv.app.App):
             if key in self.settings_fn[section]:
                 fn = self.settings_fn[section][key]
                 fn(config)
-
-
-class NetConnection(kivy.event.EventDispatcher):
-
-    up = kivy.properties.BooleanProperty(False, force_dispatch=True)
-
-    def __init__(self, log, **kwargs):
-        self.log = log
-
-        self._socket = None
-
-        super(NetConnection, self).__init__(**kwargs)
-
-    def tick(self):
-        if self._socket:
-            # print(type(self._socket))
-            read, write, err = select.select(
-                [self._socket], [self._socket], [self._socket], 0
-            )
-
-            if err:
-                self.log.error("socket error!")
-                self._close_sock()
-                return
-
-            if write:
-                if not self.up:
-                    self.log.info("setting net con to up")
-                self.up = True
-
-            if read:
-                try:
-                    buff = self._socket.recv(4096)
-                except ConnectionError:
-                    self._close_sock()
-
-                else:
-                    if not buff:
-                        self._close_sock()
-                        return
-
-    def _close_sock(self):
-        self.log.error("closing socket")
-        self._socket.close()
-        self._socket = None
-        self.up = False
-
-    def _send_pkt(self, pkt):
-
-        if not self._socket:
-            self.log.error("Trying to send with No socket !")
-            return
-
-        _, write, err = select.select([], [self._socket], [self._socket], 0)
-
-        if err or not write:
-            self.log.error("Trying to send with un-writable socket")
-            return
-
-        buff = pkt.SerializeToString()
-        buff = sissyBot.net.insert_pkt_len(buff)
-
-        # Yes I should check it's writable, but we aren't sending that much
-        # currently.
-        try:
-            self._socket.send(buff)
-        except BlockingIOError:
-            pass
-
-    def connect(self, addr, port):
-        self.log.info(f"Connecting ! {addr}:{port}")
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._socket.setblocking(False)
-
-        try:
-            self._socket.connect((addr, int(port)))
-        except BlockingIOError:
-            pass
-
-    def close(self):
-        self._close_sock()
-
-    def drive_cmd(self, theta, rho):
-        pkt = Packet()
-
-        pkt.drive.heading = int(math.degrees(theta))
-        pkt.drive.throttle = rho
-
-        self._send_pkt(pkt)
-
-    def drive_stop(self):
-        pkt = Packet()
-
-        pkt.drive_stop.SetInParent()
-
-        self._send_pkt(pkt)
 
 
 def client():

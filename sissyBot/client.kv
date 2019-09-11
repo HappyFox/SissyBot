@@ -33,9 +33,12 @@
                     size_hint: [ 1, self.size_hint_min_y ]
                 ConnectButton:
                     id: connect_btn
-                    net_con: app.net_con
+                    #net_con: app.net_con
+                    bot_con: app.bot_con
                     text: 'Connect'
-                    on_press: app.net_con.connect(address_label.text, app.config.get("robot", "port"))
+                    #on_press: app.net_con.connect(address_label.text, app.config.get("robot", "port"))
+                    on_press: app.bot_con.connect(address_label.text, app.config.get("robot", "port"))
+
                     size_hint: [ 1, self.size_hint_min_y ]
         AccordionItem:
             title: 'Log'
