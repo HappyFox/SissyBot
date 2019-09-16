@@ -15,17 +15,14 @@ import kivy.uix.label
 import kivy.uix.togglebutton
 import kivy.utils
 
-# import sissyBot.net
 import sissyBot.robot
-
-# from sissyBot.proto.packet_pb2 import Packet
 
 from . import float_joy
 
 
 class RootWidget(kivy.uix.boxlayout.BoxLayout):
     def on_addr_update(self, config):
-        addr_str = config.get("robot", "address") + ":" + config.get("robot", "port")
+        addr_str = config.get("robot", "address")
 
         self.ids.address_label.text = addr_str
 
@@ -52,9 +49,6 @@ class ConnectButton(kivy.uix.togglebutton.ToggleButton):
 
     def on_bot_con(self, _, bot_con):
         bot_con.bind(up=self.on_up)
-
-    def on_press(self):
-        self.text = "Connecting"
 
     def on_up(self, _, up):
         print("on_up")
@@ -93,9 +87,7 @@ class ClientApp(kv.app.App):
     def on_start(self):
         self.log = self.root.ids.log
         # self.log = LogBinding(self.root.ids.log)
-        # self.bot_con = sissyBot.net.ClientNetCon(self.log)
         self.bot_con = sissyBot.robot.Robot()
-        # self.bot_con.start()
 
         self.drive_binding = DriveBinding(self.bot_con)
 

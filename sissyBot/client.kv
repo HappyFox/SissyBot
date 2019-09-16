@@ -2,6 +2,7 @@
 #:import math math
 #:import logPanel sissyBot.client.LogPanel
 #:import ConnectButton sissyBot.client.ConnectButton
+#:import Robot sissyBot.robot.Robot
 
 #:set my_color (0.5, 0.5, 0.5)
 #:set my_color_hl (.5, .4, .5)
@@ -33,10 +34,11 @@
                     size_hint: [ 1, self.size_hint_min_y ]
                 ConnectButton:
                     id: connect_btn
-                    #net_con: app.net_con
                     bot_con: app.bot_con
                     text: 'Connect'
-                    #on_press: app.net_con.connect(address_label.text, app.config.get("robot", "port"))
+                    on_state: 
+                        if self.state == 'down': self.text = "Connecting"
+                        else: self.text = "Connect"
                     on_press: app.bot_con.connect(address_label.text, app.config.get("robot", "port"))
 
                     size_hint: [ 1, self.size_hint_min_y ]
