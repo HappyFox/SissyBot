@@ -5,9 +5,10 @@ https://packaging.python.org/guides/distributing-packages-using-setuptools/
 https://github.com/pypa/sampleproject
 """
 
-# Always prefer setuptools over distutils
-from setuptools import setup, find_packages
 from os import path
+
+# Always prefer setuptools over distutils
+from setuptools import find_packages, setup
 
 here = path.abspath(path.dirname(__file__))
 
@@ -30,12 +31,11 @@ setup(
         "Intended Audience :: Developers",
         "Topic :: Software Development :: robot control",
         "License :: OSI Approved :: MIT License",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.13",
     ],
     packages=["sissyBot"],
-    python_requires=">=3.7",
-    install_requires=['protobuf>=3.9.0'],
+    python_requires=">=3.13",
+    install_requires=["grpcio-tools"],
     extras_require={"GUI": ["kivy"]},
     entry_points={
         "console_scripts": [

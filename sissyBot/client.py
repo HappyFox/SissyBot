@@ -4,15 +4,14 @@ import select
 import socket
 
 import kivy as kv
-
 import kivy.app
 import kivy.clock
 import kivy.properties
 import kivy.uix
-import kivy.uix.widget
 import kivy.uix.boxlayout
 import kivy.uix.label
 import kivy.uix.togglebutton
+import kivy.uix.widget
 import kivy.utils
 
 import sissyBot.robot
@@ -108,9 +107,6 @@ class ClientApp(kv.app.App):
     def build_settings(self, settings):
         json_data = """
         [
-
-
-
             {
                 "type": "string",
                 "title": "Address",

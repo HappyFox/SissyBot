@@ -5,21 +5,18 @@ import math
 import multiprocessing
 import sys
 import traceback
+from dataclasses import dataclass
+
+import kivy.event
 
 # from nats.aio.client import Client as NATS
 import nats.aio.client
 
 # from nats.aio.errors import ErrConnectionClosed, ErrTimeout
 import nats.aio.errors
-
-import kivy.event
-
 import snoop
 
-from dataclasses import dataclass
-
-
-from sissyBot.protobufs import drive_pb2
+from sissyBot.proto import drive_pb2
 
 
 # @dataclass
@@ -85,7 +82,7 @@ class NatsProc:
     async def main_task(self, loop, addr):
         self.nats = nats.aio.client.Client()
 
-        await self.nats.connect(addr, loop)
+        await self.nats.connect(addr)
         self.conn_state_send_end.send(ConnState.UP)
 
         while True:
@@ -185,18 +182,15 @@ class Drive:
         self.robot = robot
 
     def cmd(self, heading, throttle):
-
-        frame = drive_pb2.DriveFrame()
-        frame.drive.heading = int(math.degrees(heading))
-        frame.drive.throttle = throttle
+        frame = drive_pb2.DriveCmd()
+        frame.heading_delta = int(math.degrees(heading))
+        frame.throttle = throttle
 
         self.robot.publish("drive.cmd", frame.SerializeToString())
 
     def stop(self):
-        frame = drive_pb2.DriveFrame()
-        frame.stop.SetInParent()
-
-        self.robot.publish("drive.cmd", frame.SerializeToString())
+        frame = drive_pb2.AllStop()
+        self.robot.publish("drive.all_stop", frame.SerializeToString())
 
 
 @snoop(depth=2)

@@ -1,13 +1,14 @@
 """
 A widget that implements a floating joystick.
 """
+
 import math
 
 import kivy as kv
 import kivy.app
+import kivy.properties
 import kivy.uix
 import kivy.uix.widget
-import kivy.properties
 
 
 class Point:

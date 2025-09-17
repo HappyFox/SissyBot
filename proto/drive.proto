@@ -1,0 +1,17 @@
+edition = "2023";
+
+
+
+message DriveCmd {
+    sint32 heading_delta = 1;
+    float throttle = 2;
+}
+
+message AllStop {
+}
+
+message DriveHeartBeat {
+  int32 time = 1; 
+}
+
+
